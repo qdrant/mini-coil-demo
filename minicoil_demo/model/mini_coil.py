@@ -56,6 +56,8 @@ class MiniCOIL:
 
             word_ids, counts, oov, forms = self.vocab_resolver.resolve_tokens(token_ids)
 
+            print(forms)
+
             # Size: (1, words)
             word_ids = np.expand_dims(word_ids, axis=0)
             # Size: (1, words, embedding_size)
@@ -77,6 +79,8 @@ class MiniCOIL:
                     continue
 
                 sentence_result[word] = {
+                    "word": word,
+                    "forms": forms[word],
                     "count": int(counts[word_id]),
                     "word_id": int(word_id),
                     "embedding": emb.tolist()
@@ -84,6 +88,8 @@ class MiniCOIL:
 
             for oov_word, count in oov.items():
                 sentence_result[oov_word] = {
+                    "word": oov_word,
+                    "forms": [oov_word],
                     "count": int(count),
                     "word_id": -1,
                     "embedding": [1]
