@@ -1,0 +1,10 @@
+version: "3.7"
+
+services:
+  minicoil_web:
+    build: .
+    container_name: minicoil_demo
+    # environment:
+    #   - QDRANT_HOST=minicoil_demo
+    # depends_on:
+    #   - minicoil_demo

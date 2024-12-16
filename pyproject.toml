@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "minicoil-demo"
+version = "0.1.0"
+description = ""
+authors = ["Qdrant team <team@qdrant.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = {extras = ["standard"], version = "^0.115.6"}
+uvicorn = "^0.34.0"
+fastembed = { git = "https://github.com/qdrant/fastembed.git", branch = "token-embeddings" }
+py-rust-stemmers = "^0.1.3"
+qdrant-client = "^1.12.0"
+tokenizers = ">=0.15,<1.0"
+ipdb = "^0.13.13"
+
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
