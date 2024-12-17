@@ -5,3 +5,7 @@
 body {
   background: var(--color-neutral-10);
 }
+
+.word-hover:hover {
+  background: var(--word-hover) !important;
+}

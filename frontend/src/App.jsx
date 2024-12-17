@@ -1,69 +1,155 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import './App.css';
 import logo from './assets/logo.svg';
 import { queryEmbeddings } from './queries';
 import Visualization from './components/Visualization.jsx';
+import { colors } from './common/colors.js';
 
 function App() {
   const textareaRef = useRef();
-  const [sentence, setSentence] = useState('');
+  const [sentence, setSentence] = useState(`
+Unknown Vector provides its users with digital media add-ons that simplify online video discovery, sharing, publishing, and organizing.
+VECTOR is an European provider of solutions for a rapidly developing telecommunications industry.
+GL Stock Images is a marketplace for royalty-free stock photos and vector illustrations.
+Designious is a design studio that creates great vector illustrations and design elements.
+Vector City Racers is an online gaming site.
+`.trim());
   const [sentenceList, setSentenceList] = useState([]);
+  const [selectedWord, setSelectedWord] = useState(null);
+  const [selectedWords, setSelectedWords] = useState([]);
   const [loading, setLoading] = useState(false);
-  const textInputHeight = '42px';
+  const textInputHeight = '82px';
 
   useEffect(() => {
     // request to the server
-    console.log(sentenceList);
+    // console.log(sentenceList);
   }, [sentenceList]);
 
   const getSentence = (sentenceObj) => {
     return Object.keys(sentenceObj)[0];
   }
 
+  const getSentenceWords = (sentenceObj) => {
+    return Object.values(sentenceObj)[0];
+  }
+
+  const tokenizeSentence = (sentence) => {
+    let regex = /\b/;
+    return sentence.split(regex);
+  }
+
   const handleSentenceInput = async (s) => {
     setLoading(true);
-    const embeddings = await queryEmbeddings(s);
-    const newEntry = {[s]: embeddings};
-    setSentenceList([...sentenceList, newEntry]);
+
+    let sentences = s.split('\n');
+    let newEntries = [];
+
+    for (let i = 0; i < sentences.length; i++) {
+      let sentence = sentences[i];
+      if (sentence.trim() === '') {
+        continue;
+      }
+      const embeddings = await queryEmbeddings(sentence);
+      const newEntry = {[sentence]: embeddings};
+      newEntries.push(newEntry);
+      
+    }
+    
+    setSentenceList([...sentenceList, ...newEntries]);
     setSentence('');
     setLoading(false);
     textareaRef.current.style.height = textInputHeight;
     textareaRef.current.focus();
   };
 
+  const selectWordObjects = (selectedWord) => {
+    let selectedWordObj = [];
+    for (let i = 0; i < sentenceList.length; i++) {
+      let sentence = getSentence(sentenceList[i]);
+      let sentenceWords = getSentenceWords(sentenceList[i]);
+      let words = Object.values(sentenceWords);
+      for (let j = 0; j < words.length; j++) {
+        let wordObj = words[j];
+        if (wordObj.word === selectedWord) {
+          selectedWordObj.push({
+            sentence: sentence,
+            ...wordObj,
+          });
+        }
+      }
+    }
+    return selectedWordObj;
+  }
+
+
   const handleWordClick = (wordObj) => {
-    console.log(wordObj);
+    setSelectedWord(wordObj.word);
   }
 
   const wrappedWords = useCallback(() => {
     return sentenceList.map((sentenceObj, index) => {
       const sentence = getSentence(sentenceObj);
       return (
-        <li key={index} className="list-none mb-2 flex justify-between">
+        <li key={index} className="list-none mb-7 flex justify-between">
           <span>
-            {sentence
-              .trim()
-              .split(' ')
+            {tokenizeSentence(sentence)
               .map((word, i) => {
-                const wordObj = {[word]: {...sentenceObj[sentence][word]}};
-                return (
-                  <span
-                    key={i}
-                    className="
-                    inline-block
-                    text-secondary-violet-90
-                    bg-secondary-violet-30
-                    hover:bg-secondary-violet-50
-                    hover:text-secondary-violet-90
-                    cursor-pointer
-                    mr-1
-                    mb-0.5
-                    "
-                    onClick={() => handleWordClick(wordObj)}
-                  >
-                    {word}
-                  </span>
-                );
+
+                let wordLower = word.toLowerCase();
+                
+                let wordParsed = hasOwnProperty.call(sentenceObj[sentence], wordLower);
+                let sentenceWord = sentenceObj[sentence][wordLower];
+                let isVocab = wordParsed && sentenceWord.word_id !== -1;
+
+                if (!wordParsed || !isVocab) {
+                  return (
+                    <span
+                      key={i}
+                      className={`
+                      inline-block
+                      text-neutral-80
+                      cursor-default
+                      mr-1
+                      mb-0.5
+                      `}
+                    >
+                      {word}
+                    </span>
+                  );
+                } else {
+                  const wordObj = {[word]: {...sentenceWord}};
+                  
+                  const colorId = sentenceWord.word_id % 12;
+                  const colorName = "color" + colorId;
+                  const colorPalette = colors[colorName];
+                  const isSelected = selectedWord === wordObj[word].word;
+
+                  return (
+                    <span
+                      key={i}
+                      className={`
+                      inline-block
+                      text-neutral-100
+                      cursor-pointer
+                      ${isSelected ? 'font-bold underline' : ''}
+                      mr-1
+                      mb-0.5
+                      word-hover
+                      `}
+                      style={{
+                        backgroundColor: colorPalette[30],
+                        "--word-hover": colorPalette[50],
+                      }}
+                      onClick={() => handleWordClick({
+                        ...sentenceWord,
+                        sentence: sentence,
+                      })}
+                    >
+                      {word}
+                    </span>
+                  );
+                }
+
               })}
           </span>
           <button
@@ -77,7 +163,19 @@ function App() {
         </li>
       );
     });
-  }, [sentenceList]);
+  }, [sentenceList, selectedWord]);
+
+
+  useEffect(() => {
+    const hasSelectedWord = selectedWord !== null;
+    let currentSelectedWords = [];
+
+    if (hasSelectedWord) {
+      currentSelectedWords = selectWordObjects(selectedWord);
+    }
+
+    setSelectedWords(currentSelectedWords);
+  }, [selectedWord, sentenceList]);
 
   return (
       <div className="w-100 h-[100vh] max-h-[100vh]">
@@ -93,8 +191,12 @@ function App() {
           <div className="flex gap-2 relative">
             <textarea
               ref={textareaRef}
+              rows={1}
+              maxLength={280}
               className={`
-              h-[${textInputHeight}]
+              h-auto
+              overflow-hidden
+              max-h-[30vh]
               w-full
               text-neutral-98
               text-[transparent]
@@ -118,7 +220,7 @@ function App() {
               value={sentence}
               onChange={(e) => {
                 // resize textarea based on content
-                textareaRef.current.style.height = textInputHeight;
+                textareaRef.current.style.height = "auto";
                 textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
 
                 setSentence(e.target.value);
@@ -171,7 +273,7 @@ function App() {
           h-[50vh]
           pb-5
           ">
-          <Visualization sentence={sentence} />
+          { selectedWords.length > 0 && <Visualization selectedWords={selectedWords} word={selectedWord} /> }
           </section>
         </div>
       </div>

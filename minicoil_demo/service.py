@@ -2,11 +2,22 @@ import os
 
 from fastapi import FastAPI
 from starlette.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
 
 from minicoil_demo.config import DATA_DIR, ROOT_DIR
 from minicoil_demo.model.mini_coil import MiniCOIL
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 vocab_path = os.path.join(DATA_DIR, "minicoil.model.vocab")
 model_path = os.path.join(DATA_DIR, "minicoil.model.npy")
@@ -20,8 +31,8 @@ mini_coil = MiniCOIL(
 )
 
 
-@app.get("/api/predict")
-async def predict(query: str):
+@app.get("/api/embed")
+async def embed(query: str):
 
     query_empedding = mini_coil.encode([query])[0]
 
@@ -31,7 +42,7 @@ async def predict(query: str):
         "result": result
     }
 
-# app.mount("/", StaticFiles(directory=os.path.join(ROOT_DIR, 'frontend', 'dist', 'spa'), html=True))
+app.mount("/", StaticFiles(directory=os.path.join(ROOT_DIR, 'frontend', 'dist'), html=True))
 
 if __name__ == "__main__":
     import uvicorn

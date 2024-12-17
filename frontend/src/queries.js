@@ -1,24 +1,105 @@
+import { axiosInstance as axios } from './common/axios.js';
+
+
 export const queryEmbeddings = function (sentence) {
-  // todo: replace with real API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const res = sentence
-        .trim()
-        .split(' ')
-        .reduce((acc, word, currentIndex) => {
-          if (word.length && currentIndex !== 2) {
-            acc[word] = {
-              count: 1,
-              word_id: currentIndex,
-              embedding: [
-                0.9681012034416199, 0.07225080579519272, 0.7214844822883606,
-                0.25930842757225037,
-              ],
+  
+  /*
+  Response example:
+
+  {
+    "result": [
+      {
+        "word": "world",
+        "forms": [
+          "worlds"
+        ],
+        "count": 1,
+        "word_id": 20,
+        "embedding": [
+          0.8034816980361938,
+          0.5176542401313782,
+          0.568328320980072,
+          0.2517743408679962
+        ]
+      },
+      {
+        "word": "hello",
+        "forms": [
+          "hello"
+        ],
+        "count": 1,
+        "word_id": 1893,
+        "embedding": [
+          -0.34344425797462463,
+          0.6368343830108643,
+          0.3761855959892273,
+          0.08485057950019836
+        ]
+      },
+      {
+        "word": "[CLS]",
+        "forms": [
+          "[CLS]"
+        ],
+        "count": 1,
+        "word_id": -1,
+        "embedding": [
+          1
+        ]
+      },
+      {
+        "word": "[SEP]",
+        "forms": [
+          "[SEP]"
+        ],
+        "count": 1,
+        "word_id": -1,
+        "embedding": [
+          1
+        ]
+      }
+    ]
+  }
+  */
+  
+  return axios.get('/api/embed', { params: { query: sentence } })
+    .then((response) => {
+
+      let processedResponse = {};
+
+      /// Collect mapping from the word form to the embedding. Skip words with word_id == -1.
+      /// Example output
+
+      /*
+      {
+        "worlds": {
+          "word": "world",
+          "embedding": [0.8034816980361938, 0.5176542401313782, 0.568328320980072, 0.2517743408679962],
+          "count": 1,
+          "word_id": 20
+        },
+        "hello": {
+          "word": "hello",
+          "embedding": [-0.34344425797462463, 0.6368343830108643, 0.3761855959892273, 0.08485057950019836],
+          "count": 1,
+          "word_id": 1893
+        }
+      }
+      */
+      
+      response.data.result.forEach((wordObj) => {
+        if (wordObj.word_id !== -1) {
+          for (let form of wordObj.forms) {
+            processedResponse[form] = {
+              word: wordObj.word,
+              embedding: wordObj.embedding,
+              count: wordObj.count,
+              word_id: wordObj.word_id
             };
           }
-          return acc;
-        }, {});
-      resolve(res);
-    }, 1000);
-  });
+        }
+      });
+
+      return processedResponse;
+    });
 };

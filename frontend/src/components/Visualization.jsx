@@ -2,23 +2,16 @@ import PropTypes from 'prop-types';
 import Chart from 'chart.js/auto';
 import { useEffect, useRef } from 'react';
 
-const Visualization = ({ sentence }) => {
+const Visualization = ({ selectedWords, word }) => {
   const canvasRef = useRef(null);
-  console.log(sentence);
 
-  const xyValues = [
-    {x:50, y:7},
-    {x:60, y:8},
-    {x:70, y:8},
-    {x:80, y:9},
-    {x:90, y:9},
-    {x:100, y:9},
-    {x:110, y:10},
-    {x:120, y:11},
-    {x:130, y:14},
-    {x:140, y:14},
-    {x:150, y:15}
-  ];
+  const xyValues = selectedWords.map((wordObj) => {
+    return {
+      x: wordObj.embedding[1],
+      y: wordObj.embedding[2],
+      sentence: wordObj.sentence,
+    };
+  });
 
   // let chart;
 
@@ -36,21 +29,57 @@ const Visualization = ({ sentence }) => {
             pointRadius: 4,
             pointBackgroundColor: "#b99aff",
             pointBorderColor: "#8547ff",
+            label: word,
             data: xyValues
           }]
         },
         options:{
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const sentence = context.dataset.data[context.dataIndex].sentence;
+                  return sentence;
+                }
+              }
+            }
+          },
           responsive: true,
           maintainAspectRatio: false,
           scales: {
             x: {
+              min: -1.2,
+              max: 1.2,
+              display: true,
+              position: 'center',
               grid: {
-                display: false,
+                display: false
               },
-              display: false,
+              ticks: {
+                display: false
+              },
+              border: {
+                display: true,
+                color: '#444444aa',
+                drawTicks: false
+              },
             },
             y: {
-              display: false,
+              min: -1.2,
+              max: 1.2,
+              display: true,
+              position: 'center',
+              grid: {
+                display: false
+              },
+              ticks: {
+                display: false
+              },
+              border: {
+                display: true,
+                color: '#444444aa',
+                drawTicks: false
+              },
             },
           },
         }
@@ -59,7 +88,7 @@ const Visualization = ({ sentence }) => {
     return () => {
       chart?.destroy();
     };
-  }, []);
+  }, [word, selectedWords]);
 
   return (
       <canvas ref={canvasRef}></canvas>
@@ -67,7 +96,8 @@ const Visualization = ({ sentence }) => {
 }
 
 Visualization.propTypes = {
-  sentence: PropTypes.string.isRequired,
+  selectedWords: PropTypes.array.isRequired,
+  word: PropTypes.string.isRequired,
 };
 
 export default Visualization;
