@@ -1,0 +1,7 @@
+:root {
+  --color-neutral-10: #090e1a;
+}
+
+body {
+  background: var(--color-neutral-10);
+}
