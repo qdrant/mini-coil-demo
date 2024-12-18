@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import logo from './assets/logo.svg';
 import { queryEmbeddings } from './queries';
@@ -10,11 +10,6 @@ function App() {
   const [sentenceList, setSentenceList] = useState([]);
   const [selectedWord, setSelectedWord] = useState(null);
   const [selectedWords, setSelectedWords] = useState([]);
-
-  useEffect(() => {
-    // request to the server
-    // console.log(sentenceList);
-  }, [sentenceList]);
 
   const getSentence = (sentenceObj) => {
     return Object.keys(sentenceObj)[0];
@@ -65,11 +60,6 @@ function App() {
   const handleWordClick = (wordObj) => {
     setSelectedWord(wordObj.word);
   }
-
-  const wrappedWords = useCallback(() => {
-
-  }, [sentenceList, selectedWord]);
-
 
   useEffect(() => {
     const hasSelectedWord = selectedWord !== null;
