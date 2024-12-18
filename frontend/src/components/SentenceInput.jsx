@@ -13,6 +13,8 @@ Designious is a design studio that creates great vector illustrations and design
 Vector City Racers is an online gaming site.
     `.trim());
 
+    const textInputHeight = "42px";
+
 
     const handleAddSentence = async () => {
         setLoading(true);
