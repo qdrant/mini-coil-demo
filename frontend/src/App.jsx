@@ -3,6 +3,7 @@ import './App.css';
 import logo from './assets/logo.svg';
 import { queryEmbeddings } from './queries';
 import Visualization from './components/Visualization.jsx';
+import VisualizationGraph from './components/VisualizationGraph.jsx';
 import SentenceInput from './components/SentenceInput.jsx';
 import SentencesView from './components/SentencesView.jsx';
 
@@ -10,6 +11,7 @@ function App() {
   const [sentenceList, setSentenceList] = useState([]);
   const [selectedWord, setSelectedWord] = useState(null);
   const [selectedWords, setSelectedWords] = useState([]);
+  const [useGraph, setUseGraph] = useState(false);
 
   const getSentence = (sentenceObj) => {
     return Object.keys(sentenceObj)[0];
@@ -93,8 +95,27 @@ function App() {
 
     </main>
     <aside className="col-span-5 bg-slate-600 p-4 gap-2">
+      {
+        // Toggle between Visualization and VisualizationGraph components
+        // Aligned to the right of the screen
+      }
+      <div className="flex justify-end gap-2">
+        <button
+          className={`btn p-2 border ${useGraph ? "border-neutral-50" : "border-secondary-violet-50"} rounded text-neutral-90`}
+          onClick={() => setUseGraph(false)}
+        >Scatter</button>
+        <button
+          className={`btn p-2 border ${!useGraph ? "border-neutral-50" : "border-secondary-violet-50"} rounded text-neutral-90`}
+          onClick={() => setUseGraph(true)}
+        >Graph</button>
+      </div>
+
       <div className='h-[50vh]'>
-      {selectedWords.length > 0 && <Visualization selectedWords={selectedWords} word={selectedWord} />}
+        {
+          useGraph ?
+            <VisualizationGraph selectedWords={selectedWords} word={selectedWord} /> :
+            <Visualization selectedWords={selectedWords} word={selectedWord} />
+        }
       </div>
     </aside>
   </div>;

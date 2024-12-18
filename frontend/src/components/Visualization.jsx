@@ -22,18 +22,20 @@ const Visualization = ({ selectedWords, word }) => {
     let chart = null;
     const ctx = canvasRef?.current?.getContext("2d");
     if (ctx) {
+      let datasets = xyValues.length > 0 ? [{
+        pointRadius: 4,
+        pointBackgroundColor: "#b99aff",
+        pointBorderColor: "#8547ff",
+        label: word,
+        data: xyValues
+      }] : [];
+
       chart = new Chart(ctx, {
         type: "scatter",
         data: {
-          datasets: [{
-            pointRadius: 4,
-            pointBackgroundColor: "#b99aff",
-            pointBorderColor: "#8547ff",
-            label: word,
-            data: xyValues
-          }]
+          datasets
         },
-        options:{
+        options: {
           plugins: {
             tooltip: {
               callbacks: {
@@ -91,13 +93,13 @@ const Visualization = ({ selectedWords, word }) => {
   }, [word, selectedWords]);
 
   return (
-      <canvas ref={canvasRef}></canvas>
+    <canvas ref={canvasRef}></canvas>
   )
 }
 
 Visualization.propTypes = {
   selectedWords: PropTypes.array.isRequired,
-  word: PropTypes.string.isRequired,
+  word: PropTypes.string,
 };
 
 export default Visualization;
