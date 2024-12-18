@@ -72,36 +72,32 @@ function App() {
     setSelectedWords(currentSelectedWords);
   }, [selectedWord, sentenceList]);
 
-  return (
-    <div className="w-100 h-[100vh] max-h-[100vh]">
-      <div className="flex flex-col gap-y-4 mt-4 mb-2.5 w-100 lg:w-[60vw] px-6 mx-auto">
-        <div className="flex justify-center mb-10">
-          <img src={logo} className="h-9" alt="Qdrant logo" />
-        </div>
-        <section className="
-          max-h-[30vh]
-          overflow-y-auto
-          ">
-          <SentencesView
-            sentenceList={sentenceList}
-            selectedWord={selectedWord}
-            handleWordClick={handleWordClick}
-            removeSentence={(index) => { setSentenceList(sentenceList.filter((_, i) => i !== index)); }}
-          />
-          <div className="flex gap-2 relative">
-            <SentenceInput addSentence={handleSentenceInput} />
-          </div>
-        </section>
 
-        <section className="
-          h-[50vh]
-          pb-5
-          ">
-          {selectedWords.length > 0 && <Visualization selectedWords={selectedWords} word={selectedWord} />}
-        </section>
+  return <div className="container m-auto grid grid-cols-4 gap-1 text-white md:grid-cols-12">
+    <header className="col-span-full bg-slate-600 p-4">
+      <div className="flex justify-center mb-10">
+        <img src={logo} className="h-9" alt="Qdrant logo" />
       </div>
-    </div>
-  );
+    </header>
+    <main className="col-span-4 bg-slate-600 p-4 md:col-span-7">
+      <div className="flex gap-2 relative">
+        <SentenceInput addSentence={handleSentenceInput} />
+      </div>
+
+      <SentencesView
+        sentenceList={sentenceList}
+        selectedWord={selectedWord}
+        handleWordClick={handleWordClick}
+        removeSentence={(index) => { setSentenceList(sentenceList.filter((_, i) => i !== index)); }}
+      />
+
+    </main>
+    <aside className="col-span-5 bg-slate-600 p-4 gap-2">
+      <div className='h-[50vh]'>
+      {selectedWords.length > 0 && <Visualization selectedWords={selectedWords} word={selectedWord} />}
+      </div>
+    </aside>
+  </div>;
 }
 
 export default App;

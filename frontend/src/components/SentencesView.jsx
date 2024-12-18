@@ -53,7 +53,7 @@ function generateList(sentenceList, selectedWord, hoveredWord, handleWordClick, 
     return sentenceList.map((sentenceObj, index) => {
         const sentence = getSentence(sentenceObj);
         return (
-            <li key={index} className="list-none mb-7 flex justify-between">
+            <li key={index} className="list-none mt-7 flex justify-between">
                 <span>
                     {tokenizeSentence(sentence)
                         .map((word, i) => {
