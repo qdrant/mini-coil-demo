@@ -13,6 +13,14 @@ const Visualization = ({ selectedWords, word }) => {
     };
   });
 
+  const zwValues = selectedWords.map((wordObj) => {
+    return {
+      x: wordObj.embedding[2],
+      y: wordObj.embedding[3],
+      sentence: wordObj.sentence,
+    };
+  });
+
   // let chart;
 
   useEffect(() => {
@@ -26,9 +34,17 @@ const Visualization = ({ selectedWords, word }) => {
         pointRadius: 4,
         pointBackgroundColor: "#b99aff",
         pointBorderColor: "#8547ff",
-        label: word,
+        label: word + ":[0,1]",
         data: xyValues
-      }] : [];
+      },
+      // {
+      //   pointRadius: 4,
+      //   pointBackgroundColor: "#ff8a8a",
+      //   pointBorderColor: "#ff5a5a",
+      //   label: word + ":[2,3]",
+      //   data: zwValues
+      // }
+    ] : [];
 
       chart = new Chart(ctx, {
         type: "scatter",
