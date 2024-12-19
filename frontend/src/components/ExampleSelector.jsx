@@ -21,9 +21,9 @@ const examples = {
 }
 
 
-const ExampleSelector = ({ addSentence }) => {
-    const handleExampleClick = (sentence) => {
-        addSentence(sentence);
+const ExampleSelector = ({ useExample }) => {
+    const handleExampleClick = (word, sentences) => {
+        useExample(word, sentences);
     }
 
     let buttons = [];
@@ -36,7 +36,7 @@ const ExampleSelector = ({ addSentence }) => {
             <button 
                 key={word}
                 className="btn pt-1 pb-1 pl-2 pr-2 border border-neutral-50 rounded text-neutral-90 mt-4 ml-2"
-                onClick={() => handleExampleClick(joinedSentences)}
+                onClick={() => handleExampleClick(word, joinedSentences)}
             >
                 {word}
             </button>
@@ -50,7 +50,7 @@ const ExampleSelector = ({ addSentence }) => {
 }
 
 ExampleSelector.propTypes = {
-    addSentence: PropTypes.func.isRequired,
+    useExample: PropTypes.func.isRequired,
 };
 
 export default ExampleSelector;

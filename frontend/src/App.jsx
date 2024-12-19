@@ -99,7 +99,7 @@ function App() {
         <SentenceInput addSentence={handleSentenceInput} />
       </div>
 
-      <ExampleSelector addSentence={(sentence) => { overwriteSentenceInput(sentence) }} />
+      <ExampleSelector useExample={(word, sentences) => { overwriteSentenceInput(sentences), setSelectedWord(word) }} />
 
       <SentencesView
         sentenceList={sentenceList}
