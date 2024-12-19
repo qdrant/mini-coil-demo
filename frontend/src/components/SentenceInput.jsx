@@ -5,13 +5,7 @@ const SentenceInput = ({ addSentence }) => {
 
     const textareaRef = useRef();
     const [loading, setLoading] = useState(false);
-    const [sentence, setSentence] = useState(`
-Unknown Vector provides its users with digital media add-ons that simplify online video discovery, sharing, publishing, and organizing.
-VECTOR is an European provider of solutions for a rapidly developing telecommunications industry.
-GL Stock Images is a marketplace for royalty-free stock photos and vector illustrations.
-Designious is a design studio that creates great vector illustrations and design elements.
-Vector City Racers is an online gaming site.
-    `.trim());
+    const [sentence, setSentence] = useState(``.trim());
 
     const textInputHeight = "42px";
 

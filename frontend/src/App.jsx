@@ -6,6 +6,7 @@ import Visualization from './components/Visualization.jsx';
 import VisualizationGraph from './components/VisualizationGraph.jsx';
 import SentenceInput from './components/SentenceInput.jsx';
 import SentencesView from './components/SentencesView.jsx';
+import ExampleSelector from './components/ExampleSelector.jsx';
 
 function App() {
   const [sentenceList, setSentenceList] = useState([]);
@@ -21,7 +22,7 @@ function App() {
     return Object.values(sentenceObj)[0];
   }
 
-  const handleSentenceInput = async (s) => {
+  const prepareSentence = async (s) => {
     let sentences = s.split('\n');
     let newEntries = [];
 
@@ -33,11 +34,20 @@ function App() {
       const embeddings = await queryEmbeddings(sentence);
       const newEntry = { [sentence]: embeddings };
       newEntries.push(newEntry);
-
     }
 
+    return newEntries;
+  }
+
+  const handleSentenceInput = async (s) => {
+    let newEntries = await prepareSentence(s);
     setSentenceList([...sentenceList, ...newEntries]);
   };
+
+  const overwriteSentenceInput = async (s) => {
+    let newEntries = await prepareSentence(s);
+    setSentenceList(newEntries);
+  }
 
   const selectWordObjects = (selectedWord) => {
     let selectedWordObj = [];
@@ -52,6 +62,7 @@ function App() {
             sentence: sentence,
             ...wordObj,
           });
+          break;
         }
       }
     }
@@ -71,6 +82,8 @@ function App() {
       currentSelectedWords = selectWordObjects(selectedWord);
     }
 
+    console.log("currentSelectedWords", currentSelectedWords);
+
     setSelectedWords(currentSelectedWords);
   }, [selectedWord, sentenceList]);
 
@@ -85,6 +98,8 @@ function App() {
       <div className="flex gap-2 relative">
         <SentenceInput addSentence={handleSentenceInput} />
       </div>
+
+      <ExampleSelector addSentence={(sentence) => { overwriteSentenceInput(sentence) }} />
 
       <SentencesView
         sentenceList={sentenceList}

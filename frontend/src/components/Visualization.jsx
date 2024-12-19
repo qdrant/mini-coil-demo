@@ -7,8 +7,8 @@ const Visualization = ({ selectedWords, word }) => {
 
   const xyValues = selectedWords.map((wordObj) => {
     return {
-      x: wordObj.embedding[1],
-      y: wordObj.embedding[2],
+      x: wordObj.embedding[0],
+      y: wordObj.embedding[1],
       sentence: wordObj.sentence,
     };
   });
