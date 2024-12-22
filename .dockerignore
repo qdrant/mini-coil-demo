@@ -1,3 +1,7 @@
-data/*
 frontend/node_modules/
 venv/
+
+# all in data, except for minicoil.model.npy and minicoil.model.vocab
+data/*
+!data/minicoil.model.npy
+!data/minicoil.model.vocab

@@ -27,10 +27,13 @@ RUN poetry config virtualenvs.create false \
 
 # Install pre-trained models here
 # Example:
-# RUN python -c 'from sentence_transformers import SentenceTransformer; SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2") '
+RUN python -c 'from fastembed.late_interaction.token_embeddings import TokenEmbeddingsModel; TokenEmbeddingsModel(model_name="jinaai/jina-embeddings-v2-small-en-tokens")'
 
 # Creating folders, and files for a project:
 COPY . /code
+
+COPY data/minicoil.model.npy /code/data/minicoil.model.npy
+COPY data/minicoil.model.vocab /code/data/minicoil.model.vocab
 
 COPY --from=builder /frontend/dist /code/frontend/dist
 
