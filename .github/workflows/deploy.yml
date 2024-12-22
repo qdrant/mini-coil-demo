@@ -22,6 +22,10 @@ jobs:
     - name: Build backend
       run: |
         cd $GITHUB_WORKSPACE
+        cd data
+        wget https://storage.googleapis.com/qdrant-fastembed/minicoil.tgz
+        tar -xvzf minicoil.tgz
+        cd ..
         docker build -t qdrant/minicoil-demo:${{ github.sha }} .
         docker save -o minicoil-demo.tar qdrant/minicoil-demo:${{ github.sha }}
         chmod 666 minicoil-demo.tar
