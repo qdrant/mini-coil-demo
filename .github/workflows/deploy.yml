@@ -1,0 +1,49 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Deploy
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v3
+    - name: Build backend
+      run: |
+        cd $GITHUB_WORKSPACE
+        docker build -t qdrant/minicoil-demo:${{ github.sha }} .
+        docker save -o minicoil-demo.tar qdrant/minicoil-demo:${{ github.sha }}
+        chmod 666 minicoil-demo.tar
+        ls -al .
+    - name: copy data with ssh
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
+        source: "minicoil-demo.tar"
+        target: "deployment/data"
+
+    - name: run images
+      uses: fifsky/ssh-action@master
+      with:
+        command: |
+          docker load -i deployment/data/minicoil-demo.tar;
+          docker images;
+          docker kill minicoil-demo || true;
+          docker rm minicoil-demo || true;
+          docker run -d -p 8166:8000 --restart unless-stopped --network=qdrant-net --name minicoil-demo qdrant/minicoil-demo:${{ github.sha }};
+        host: ${{ secrets.DEPLOY_HOST }}
+        user: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
