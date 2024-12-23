@@ -11,13 +11,21 @@ const examples = {
         "Send hits flying like lighting with an electric Neon Yellow version of baseball’s most dominant two-piece hybrid BBCOR bat featuring a heavy-hitting X14 Alloy Barrel.",
     ],
     "vector": [
-        "An example of a viral vector vaccine is the rVSV-ZEBOV vaccine against Ebola.",
-        "Whether you are an illustrator, designer, web designer or just someone who needs to create some vector imagery, Inkscape is for you!",
-        "Qdrant is an Open-Source Vector Database and Vector Search Engine written in Rust. It provides fast and scalable vector similarity search service",
-        "Free Vectors and Icons in SVG format. Download free mono or multi color vectors for commercial use.",
-        "Other viral vector-based COVID-19 vaccines have also undergone extensive preclinical evaluations, including vesicular stomatitis virus",
-        "For high-dimensional data, tree-based exact vector search techniques such as the k-d tree and R-tree do not perform well enough because of the curse of dimensionality."
+        "vector search",
+        "vector index",
+        "vector space",
+        "vector image",
+        "vector graphics",
+        "vector illustration",
     ],
+    "watch": [
+        "I always wear a silver watch to keep track of time.",
+        "Let’s watch the sunset together from the balcony.",
+        "He subscribed to the new streaming service to watch his favorite shows.",
+        "The mountain climber was careful to watch her footing on the icy trail.",
+        "She glanced at her watch and realized she was running late for the meeting.",
+        "His collection includes a rare Swiss watch made in the early 1900s.",
+    ]
 }
 
 

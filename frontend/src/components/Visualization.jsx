@@ -37,13 +37,13 @@ const Visualization = ({ selectedWords, word }) => {
         label: word + ":[0,1]",
         data: xyValues
       },
-      // {
-      //   pointRadius: 4,
-      //   pointBackgroundColor: "#ff8a8a",
-      //   pointBorderColor: "#ff5a5a",
-      //   label: word + ":[2,3]",
-      //   data: zwValues
-      // }
+      {
+        pointRadius: 4,
+        pointBackgroundColor: "#ff8a8a",
+        pointBorderColor: "#ff5a5a",
+        label: word + ":[2,3]",
+        data: zwValues
+      }
     ] : [];
 
       chart = new Chart(ctx, {
