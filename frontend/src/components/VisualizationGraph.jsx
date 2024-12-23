@@ -23,12 +23,13 @@ const VisualizationGraph = ({ selectedWords, word }) => {
         // eslint-disable-next-line new-cap
         graphRef.current = ForceGraph()(elem)
             .linkLabel('score')
+            .autoPauseRedraw(false)
             .linkColor(() => '#a6a6a6')
             .nodeColor(() => '#5700c9')
             .width(elem.clientWidth)
             .height(elem.clientHeight / 2)
             ;
-    }, []);
+    }, [selectedWords]);
 
     useEffect(() => {
 
