@@ -2,8 +2,9 @@
 End-to-end inference of the miniCOIL model.
 This includes sentence transformer, vocabulary resolver, and the coil post-encoder.
 """
+import itertools
 import json
-from typing import List
+from typing import Iterable, List
 
 import numpy as np
 from fastembed.late_interaction.token_embeddings import TokenEmbeddingsModel
@@ -19,7 +20,6 @@ class MiniCOIL:
             vocab_path: str,
             word_encoder_path: str,
             input_dim: int = 512,
-            output_dim: int = 4,
             sentence_encoder_model: str = "jinaai/jina-embeddings-v2-small-en-tokens"
     ):
         self.sentence_encoder_model = sentence_encoder_model
@@ -30,7 +30,7 @@ class MiniCOIL:
         self.vocab_resolver.load_json_vocab(vocab_path)
 
         self.input_dim = input_dim
-        self.output_dim = output_dim
+        self.output_dim = None
 
         self.word_encoder_path = word_encoder_path
 
@@ -42,16 +42,13 @@ class MiniCOIL:
         weights = np.load(self.word_encoder_path)
         self.word_encoder = Encoder(weights)
         assert self.word_encoder.input_dim == self.input_dim
-        assert self.word_encoder.output_dim == self.output_dim
+        self.output_dim = self.word_encoder.output_dim
 
-    def encode(self, sentences: list) -> List[dict]:
-        """
-        Encode the given word in the context of the sentences.
-        """
-
-        result = []
-
-        for embedding, sentence in zip(self.sentence_encoder.embed(sentences, batch_size=4), sentences):
+    def encode_steam(self, sentences: Iterable[str]) -> Iterable[dict]:
+        
+        sentences1, sentences2 = itertools.tee(sentences, 2)
+        
+        for embedding, sentence in zip(self.sentence_encoder.embed(sentences1, batch_size=4, parallel=8), sentences2):
             token_ids = np.array(self.sentence_encoder.tokenize([sentence])[0].ids)
 
             word_ids, counts, oov, forms = self.vocab_resolver.resolve_tokens(token_ids)
@@ -61,6 +58,8 @@ class MiniCOIL:
             # Size: (1, words, embedding_size)
             embedding = np.expand_dims(embedding, axis=0)
 
+            assert word_ids.shape[1] == embedding.shape[1]
+            
             # Size of word_ids_mapping: (unique_words, 2) - [vocab_id, batch_id]
             # Size of embeddings: (unique_words, embedding_size)
             ids_mapping, embeddings = self.word_encoder.forward(word_ids, embedding)
@@ -92,11 +91,15 @@ class MiniCOIL:
                     "word_id": -1,
                     "embedding": [1]
                 }
+            
+            yield sentence_result
 
-            result.append(sentence_result)
 
-        return result
-
+    def encode(self, sentences: list) -> List[dict]:
+        """
+        Encode the given word in the context of the sentences.
+        """
+        return list(self.encode_steam(sentences))
 
 def main():
     import argparse

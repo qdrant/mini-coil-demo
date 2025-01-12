@@ -18,9 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+model_name = os.getenv("MODEL_NAME", "minicoil.model")
 
-vocab_path = os.path.join(DATA_DIR, "minicoil.model.vocab")
-model_path = os.path.join(DATA_DIR, "minicoil.model.npy")
+vocab_path = os.path.join(DATA_DIR, f"{model_name}.vocab")
+model_path = os.path.join(DATA_DIR, f"{model_name}.npy")
 
 transformer_model = "jinaai/jina-embeddings-v2-small-en-tokens"
 
