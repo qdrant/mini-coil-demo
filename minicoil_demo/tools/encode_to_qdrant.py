@@ -3,6 +3,7 @@ import argparse
 import os
 from typing import Iterable, List
 import uuid
+import json
 
 from qdrant_client import QdrantClient, models
 
@@ -20,9 +21,27 @@ def read_file(file_path):
             yield line.strip()
 
 
+def read_file_beir(file_path: str) -> Iterable[str]:
+    with open(file_path, "r") as file:
+        for line in file:
+            row = json.loads(line)
+            yield row["_id"], row["text"]
+
+def read_texts_beir(file_path: str) -> Iterable[str]:
+    with open(file_path, "r") as file:
+        for line in file:
+            row = json.loads(line)
+            yield row["text"]
+
 def embedding_stream(model: MiniCOIL, file_path) -> Iterable[dict]:
     stream = read_file(file_path)
     for sentence_embeddings in model.encode_steam(stream, parallel=4):
+        yield sentence_embeddings
+
+
+def embedding_stream_beir(model: MiniCOIL, file_path) -> Iterable[dict]:
+    stream = read_texts_beir(file_path)
+    for sentence_embeddings in model.encode_steam(stream):
         yield sentence_embeddings
 
 
@@ -41,12 +60,29 @@ def read_points(model: MiniCOIL, file_path: str):
                 "sentence": sentence
             }
         )
+
+
+def read_points_beir(model: MiniCOIL, file_path: str, total_points: int = 523000):
+    embeddings = embedding_stream_beir(model, file_path=file_path)
+    sparse_vectors = map(lambda x: embedding_to_vector(model, x), embeddings)
+    
+    for ((id_text, text), sparse_vector) in tqdm.tqdm(zip(read_file_beir(file_path), sparse_vectors), total=total_points, desc="Processing points, BEIR"): #quora
+        yield models.PointStruct(
+            id=int(id_text),
+            vector={
+                "minicoil": sparse_vector,
+            },
+            payload={
+                "sentence": text
+            }
+        )
     
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-name", type=str)
     parser.add_argument("--input-path", type=str)
+    parser.add_argument("--is-beir-dataset", action="store_true")
     parser.add_argument("--collection-name", type=str, default="minicoil-demo")
     
     args = parser.parse_args()
@@ -63,13 +99,13 @@ def main():
         sentence_encoder_model=transformer_model
     )
 
-    qdrant_cleint = QdrantClient(
+    qdrant_client = QdrantClient(
         url=QDRANT_URL,
         api_key=QDRANT_API_KEY
     )
     
-    if not qdrant_cleint.collection_exists(args.collection_name):
-        qdrant_cleint.create_collection(
+    if not qdrant_client.collection_exists(args.collection_name):
+        qdrant_client.create_collection(
             collection_name=args.collection_name,
             vectors_config={},
             sparse_vectors_config={
@@ -78,11 +114,19 @@ def main():
         )
         
     import ipdb
-    with ipdb.launch_ipdb_on_exception():
-        qdrant_cleint.upload_points(
-            collection_name=args.collection_name,
-            points=tqdm.tqdm(read_points(mini_coil, args.input_path))
-        )
+
+    if args.is_beir_dataset:
+        with ipdb.launch_ipdb_on_exception():
+            qdrant_client.upload_points(
+                collection_name=args.collection_name,
+                points=tqdm.tqdm(read_points_beir(mini_coil, args.input_path))
+            )
+    else:
+        with ipdb.launch_ipdb_on_exception():
+            qdrant_client.upload_points(
+                collection_name=args.collection_name,
+                points=tqdm.tqdm(read_points(mini_coil, args.input_path))
+            )
 
 
 if __name__ == '__main__':

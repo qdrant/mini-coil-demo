@@ -26,7 +26,7 @@ def unkn_word_token_id(word: str, shift: int) -> int:  #2-3 words can collied in
     
     return remapped_hash
 
-def bm25_tf(num_occurrences: int, sentence_len: int, k: float = 1.2, b: float = 0.75, avg_len: float = 256.0) -> float:
+def bm25_tf(num_occurrences: int, sentence_len: int, k: float = 1.2, b: float = 0.75, avg_len: float = 25.0) -> float: #avg_len 25 for quora
     #omitted checking token_max_lenth
     res = num_occurrences * (k + 1)
     res /= num_occurrences + k * (1 - b + b * sentence_len / avg_len)
@@ -68,6 +68,7 @@ def embedding_to_vector(model: MiniCOIL, sentence_embedding: List[dict]) -> mode
             normalized_embedding = normalize_vector(embedding)
             for val_id, value in enumerate(normalized_embedding):
                 indices.append((word_id - 1) * embedding_size + val_id) #since miniCOIL IDs start with 1
+                #TBD perhaps only if it's positive <THNK>
                 values.append(value * bm25_tf(num_occurences, sentence_len))
         if word_id == -1: #unk
             if embedding["word"] not in punctuation and embedding["word"] not in english_stopwords and embedding["word"] not in special_tokens:
