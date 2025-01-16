@@ -44,11 +44,11 @@ class MiniCOIL:
         assert self.word_encoder.input_dim == self.input_dim
         self.output_dim = self.word_encoder.output_dim
 
-    def encode_steam(self, sentences: Iterable[str]) -> Iterable[dict]:
+    def encode_steam(self, sentences: Iterable[str], parallel = None) -> Iterable[dict]:
         
         sentences1, sentences2 = itertools.tee(sentences, 2)
         
-        for embedding, sentence in zip(self.sentence_encoder.embed(sentences1, batch_size=4, parallel=8), sentences2):
+        for embedding, sentence in zip(self.sentence_encoder.embed(sentences1, batch_size=4, parallel=parallel), sentences2):
             token_ids = np.array(self.sentence_encoder.tokenize([sentence])[0].ids)
 
             word_ids, counts, oov, forms = self.vocab_resolver.resolve_tokens(token_ids)

@@ -22,7 +22,7 @@ def read_file(file_path):
 
 def embedding_stream(model: MiniCOIL, file_path) -> Iterable[dict]:
     stream = read_file(file_path)
-    for sentence_embeddings in model.encode_steam(stream):
+    for sentence_embeddings in model.encode_steam(stream, parallel=4):
         yield sentence_embeddings
 
 
