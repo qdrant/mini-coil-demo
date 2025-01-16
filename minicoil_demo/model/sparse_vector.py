@@ -10,6 +10,7 @@ GAP = 32000
 INT32_MAX = 2**31 - 1
 english_stopwords = set(english_stopwords)
 punctuation = set(get_all_punctuation())
+special_tokens = set(['[CLS]', '[SEP]', '[PAD]', '[UNK]', '[MASK]']) #TBD do better
 
 def normalize_vector(vector: List[float]) -> List[float]:
     norm = sum([x ** 2 for x in vector]) ** 0.5
@@ -28,13 +29,13 @@ def unkn_word_token_id(word: str, shift: int) -> int:  #2-3 words can collied in
     
     return remapped_hash
 
-def bm25_tf(num_occurrences: int, sentence_len: int, k: float = 1.2, b: float = 0.75, avg_len: float = 25.0) -> float: #avg_len 25 for quora
+def bm25_tf(num_occurrences: int, sentence_len: int, k: float = 1.2, b: float = 0.75, avg_len: float = 6.0) -> float: #avg_len 25 for quora
     #omitted checking token_max_lenth
     res = num_occurrences * (k + 1)
     res /= num_occurrences + k * (1 - b + b * sentence_len / avg_len)
     return res
 
-def embedding_to_vector(model: MiniCOIL, sentence_embedding: List[dict]) -> models.SparseVector:
+def embedding_to_vector(model: MiniCOIL, sentence_embedding: dict) -> models.SparseVector:
     indices = []
     values = []
     
@@ -43,7 +44,6 @@ def embedding_to_vector(model: MiniCOIL, sentence_embedding: List[dict]) -> mode
     
     #still dependent on vocab_size :(
     unknown_words_shift = ((vocab_size * embedding_size) // GAP + 2) * GAP #miniCOIL vocab + at least (32000 // embedding_size) + 1 new words gap
-    special_tokens = set(['[CLS]', '[SEP]', '[PAD]', '[UNK]', '[MASK]']) #TBD do better
 
     #we can't use fastembed's def remove_non_alphanumeric(text: str) unless propagating it right to vocab_resolver
     sentence_len = 0
@@ -75,6 +75,38 @@ def embedding_to_vector(model: MiniCOIL, sentence_embedding: List[dict]) -> mode
                 #print(f"""We counted {num_occurences} occurences of \"{embedding["word"]}\"""")
                 indices.append(unkn_word_token_id(embedding["word"], unknown_words_shift))
                 values.append(bm25_tf(num_occurences, sentence_len))
+    
+    return models.SparseVector(
+        indices=indices,
+        values=values,
+    )
+
+def query_embedding_to_vector(model: MiniCOIL, sentence_embedding: dict) -> models.SparseVector:
+    indices = []
+    values = []
+    
+    embedding_size = model.output_dim
+    vocab_size = model.vocab_resolver.vocab_size() #mini_coil.vocab_resolver.vocab_size() returns "vocab_size + 1" ("-1" to any word)
+    
+    #still dependent on vocab_size :(
+    unknown_words_shift = ((vocab_size * embedding_size) // GAP + 2) * GAP #miniCOIL vocab + at least (32000 // embedding_size) + 1 new words gap
+
+    for embedding in sentence_embedding.values():
+        word_id = embedding["word_id"]
+
+        if word_id >= 0: #miniCOIL starts with ID 1
+            #print(f"""We counted {num_occurences} occurences of \"{embedding["word"]}\"""")
+            embedding = embedding["embedding"]
+            normalized_embedding = normalize_vector(embedding)
+            for val_id, value in enumerate(normalized_embedding):
+                indices.append((word_id - 1) * embedding_size + val_id) #since miniCOIL IDs start with 1
+                #TBD perhaps only if it's positive <THNK>
+                values.append(value)
+        if word_id == -1: #unk
+            if embedding["word"] not in punctuation | english_stopwords | special_tokens:
+                #print(f"""We counted {num_occurences} occurences of \"{embedding["word"]}\"""")
+                indices.append(unkn_word_token_id(embedding["word"], unknown_words_shift))
+                values.append(1)
     
     return models.SparseVector(
         indices=indices,
