@@ -41,7 +41,7 @@ def embedding_stream(model: MiniCOIL, file_path) -> Iterable[dict]:
 
 def embedding_stream_beir(model: MiniCOIL, file_path) -> Iterable[dict]:
     stream = read_texts_beir(file_path)
-    for sentence_embeddings in model.encode_steam(stream):
+    for sentence_embeddings in model.encode_steam(stream, parallel=4):
         yield sentence_embeddings
 
 
