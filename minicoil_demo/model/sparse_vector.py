@@ -8,6 +8,8 @@ from qdrant_client import models
 
 GAP = 32000
 INT32_MAX = 2**31 - 1
+english_stopwords = set(english_stopwords)
+punctuation = set(get_all_punctuation())
 
 def normalize_vector(vector: List[float]) -> List[float]:
     norm = sum([x ** 2 for x in vector]) ** 0.5
@@ -41,14 +43,12 @@ def embedding_to_vector(model: MiniCOIL, sentence_embedding: List[dict]) -> mode
     
     #still dependent on vocab_size :(
     unknown_words_shift = ((vocab_size * embedding_size) // GAP + 2) * GAP #miniCOIL vocab + at least (32000 // embedding_size) + 1 new words gap
-    
-    punctuation = set(get_all_punctuation())
-    special_tokens = ['[CLS]', '[SEP]', '[PAD]', '[UNK]', '[MASK]'] #TBD do better
+    special_tokens = set(['[CLS]', '[SEP]', '[PAD]', '[UNK]', '[MASK]']) #TBD do better
 
     #we can't use fastembed's def remove_non_alphanumeric(text: str) unless propagating it right to vocab_resolver
     sentence_len = 0
     for embedding in sentence_embedding.values():
-        if embedding["word"] not in punctuation and embedding["word"] not in english_stopwords and embedding["word"] not in special_tokens:
+        if embedding["word"] not in punctuation | english_stopwords | special_tokens:
             sentence_len += embedding["count"] 
  
     #print(f"Sentence len is {sentence_len}")
@@ -71,7 +71,7 @@ def embedding_to_vector(model: MiniCOIL, sentence_embedding: List[dict]) -> mode
                 #TBD perhaps only if it's positive <THNK>
                 values.append(value * bm25_tf(num_occurences, sentence_len))
         if word_id == -1: #unk
-            if embedding["word"] not in punctuation and embedding["word"] not in english_stopwords and embedding["word"] not in special_tokens:
+            if embedding["word"] not in punctuation | english_stopwords | special_tokens:
                 #print(f"""We counted {num_occurences} occurences of \"{embedding["word"]}\"""")
                 indices.append(unkn_word_token_id(embedding["word"], unknown_words_shift))
                 values.append(bm25_tf(num_occurences, sentence_len))
