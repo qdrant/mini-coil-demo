@@ -1,6 +1,7 @@
 from qdrant_client import QdrantClient, models
 import json
 import os
+from ranx import Qrels, Run, evaluate
 import tqdm
 import argparse
 from minicoil_demo.config import QDRANT_API_KEY, QDRANT_URL, DATA_DIR
@@ -45,6 +46,7 @@ def main():
     parser.add_argument("--input-path-qrels", type=str)
     parser.add_argument("--collection-name", type=str, default="minicoil-demo")
     parser.add_argument("--total-queries-in-dataset", type=int, default=648)
+    parser.add_argument("--ir-datasets-handle", type=str) #https://ir-datasets.com/
     
     args = parser.parse_args()
 
@@ -107,14 +109,16 @@ def main():
     precisions = []
     num_queries = 0
 
-    print(json.dumps(queries))
+    qrels = Qrels.from_ir_datasets(args.ir_datasets_handle)
+    run_dict = {}
 
     for idx, query in tqdm.tqdm(enumerate(queries.values()), total=args.total_queries_in_dataset):
         #if idx >= number_of_queries:
         #    print(f"Processed {number_of_queries} queries, stopping...")
         #    break
-
+        query_dict = {}
         num_queries += 1
+
         
         if model_name == 'bm25':
             result = search_sparse_bm25(model, query["text"], limit)
@@ -127,6 +131,7 @@ def main():
 
         for hit in result:
             found_ids.append(str(hit.id))
+            query_dict[str(hit.id)] = hit.score
 
         query_hits = 0
         for doc_id in query["doc_ids"]:
@@ -143,6 +148,11 @@ def main():
             query_hits / limit
         )
 
+        run_dict[query["_id"]] = query_dict
+
+    run = Run(run_dict)
+    run.save("run.json")
+
         #print(f"Processing query: {query}, hits: {query_hits}")
 
     print(f"Total hits: {hits} out of {n}, which is {hits/n}")
@@ -156,6 +166,10 @@ def main():
     average_recall = sum(recalls) / len(recalls)
 
     print(f"Average recall: {average_recall}")
+
+    print(f'''NDCG@10 by ranx: {evaluate(qrels, run, "ndcg@10")}''')
+
+
 
 
 if __name__ == "__main__":

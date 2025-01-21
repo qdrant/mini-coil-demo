@@ -5,7 +5,7 @@ description = ""
 authors = ["Qdrant team <team@qdrant.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 fastapi = {extras = ["standard"], version = "^0.115.6"}
 uvicorn = "^0.34.0"
 fastembed = { git = "https://github.com/qdrant/fastembed.git", branch = "token-embeddings" }
@@ -14,6 +14,7 @@ qdrant-client = "^1.12.0"
 tokenizers = ">=0.15,<1.0"
 ipdb = "^0.13.13"
 mmh3 = "^4.1.0"
+ranx = "^0.3.20"
 
 [tool.poetry.dev-dependencies]
 
