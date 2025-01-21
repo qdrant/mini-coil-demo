@@ -64,27 +64,35 @@ def read_points(model: MiniCOIL, file_path: str):
         )
 
 
-def read_points_beir(model: MiniCOIL, file_path: str, total_points: int = 523000) -> Iterable[models.PointStruct]:
+def read_points_beir(model: MiniCOIL, file_path: str, avg_len: float = 150.0, total_points: int = 57000) -> Iterable[models.PointStruct]:
     embeddings = embedding_stream_beir(model, file_path=file_path)
-    sparse_vectors = map(lambda x: embedding_to_vector(model, x), embeddings)
+    sparse_vectors = map(lambda x: embedding_to_vector(model, x, avg_len), embeddings)
     
-    for ((id_text, text), sparse_vector) in tqdm.tqdm(zip(read_file_beir(file_path), sparse_vectors), total=total_points, desc="Processing points, BEIR"): #quora
+    for ((id_text, text), sparse_vector) in tqdm.tqdm(zip(read_file_beir(file_path), sparse_vectors), total=total_points, desc="Processing points, BEIR"):
         yield models.PointStruct(
             id=int(id_text),
             vector={
-                "minicoil": sparse_vector,
+                "sparse": sparse_vector,
             },
             payload={
                 "sentence": text
             }
         )
 
-def read_points_beir_bm25(model: SparseTextEmbedding, file_path: str, total_points: int = 523000) -> Iterable[models.PointStruct]:
-    for ((id_text, text), embedding) in zip(read_file_beir(file_path), model.embed(tqdm.tqdm(read_texts_beir(file_path), total=total_points, desc="Processing points, BEIR"), batch_size=32)):
+def read_points_beir_bm25(model: SparseTextEmbedding, file_path: str, total_points: int = 57000) -> Iterable[models.PointStruct]:
+    for ((id_text, text), embedding) in zip(read_file_beir(file_path), 
+                                            model.embed(
+                                                tqdm.tqdm(
+                                                    read_texts_beir(file_path), 
+                                                    total=total_points, 
+                                                    desc="Processing points, BEIR"
+                                                ), 
+                                                batch_size=32
+                                            )):
         yield models.PointStruct(
             id=int(id_text),
             vector={
-                "bm25": models.SparseVector(
+                "sparse": models.SparseVector(
                     values=embedding.values.tolist(),
                     indices=embedding.indices.tolist()
                 )
@@ -101,20 +109,25 @@ def main():
     parser.add_argument("--input-path", type=str)
     parser.add_argument("--is-beir-dataset", action="store_true")
     parser.add_argument("--collection-name", type=str, default="minicoil-demo")
+    parser.add_argument("--avg-len-in-dataset", type=float, default=150.0)
+    parser.add_argument("--total-docs-in-dataset", type=int, default=57000)
     
     args = parser.parse_args()
 
     model_name = args.model_name or DEFAULT_MODEL_NAME
 
     if model_name == 'bm25':
+        
         model = SparseTextEmbedding(
             model_name="Qdrant/bm25",
-            avg_len=6.0 #if DATASET == "quora" else 256.,
+            avg_len=args.avg_len_in_dataset
         )
+
     elif model_name == 'minicoil.model':
         vocab_path = os.path.join(DATA_DIR, f"{model_name}.vocab")
         model_path = os.path.join(DATA_DIR, f"{model_name}.npy")
         transformer_model = "jinaai/jina-embeddings-v2-small-en-tokens"
+
         model = MiniCOIL(
             vocab_path=vocab_path,
             word_encoder_path=model_path,
@@ -122,32 +135,24 @@ def main():
         )
     else:
         print(f'''{model_name} is not supported''')
+        return
 
     qdrant_client = QdrantClient(
         url=QDRANT_URL,
         api_key=QDRANT_API_KEY
     )
     
-    if model_name == 'bm25':
-        if not qdrant_client.collection_exists(args.collection_name):
-            qdrant_client.create_collection(
-                collection_name=args.collection_name,
-                vectors_config={},
-                sparse_vectors_config={
-                    "bm25": models.SparseVectorParams()
-                }
-            )
-    elif model_name == 'minicoil.model':
-        if not qdrant_client.collection_exists(args.collection_name):
-            qdrant_client.create_collection(
-                collection_name=args.collection_name,
-                vectors_config={},
-                sparse_vectors_config={
-                    "minicoil": models.SparseVectorParams()
-                }
-            )
-    else:
-        print(f'''{model_name} is not supported''')
+    if not qdrant_client.collection_exists(args.collection_name):
+        qdrant_client.create_collection(
+            collection_name=args.collection_name,
+            vectors_config={},
+            sparse_vectors_config={
+                "sparse": models.SparseVectorParams(
+                    modifier=models.Modifier.IDF
+                )
+            }
+        )
+
         
     import ipdb
 
@@ -156,17 +161,18 @@ def main():
             with ipdb.launch_ipdb_on_exception():
                 qdrant_client.upload_points(
                     collection_name=args.collection_name,
-                    points=tqdm.tqdm(read_points_beir_bm25(model, args.input_path))
+                    points=tqdm.tqdm(read_points_beir_bm25(model, args.input_path, args.total_docs_in_dataset))
                 )
         elif model_name == "minicoil.model":  
             with ipdb.launch_ipdb_on_exception():
                 qdrant_client.upload_points(
                     collection_name=args.collection_name,
-                    points=tqdm.tqdm(read_points_beir(model, args.input_path))
+                    points=tqdm.tqdm(read_points_beir(model, args.input_path, args.avg_len_in_dataset, args.total_docs_in_dataset))
                 )
         else:
             print(f'''{model_name} is not supported''')
-    else:
+            return 
+    else: #TBD
         with ipdb.launch_ipdb_on_exception():
             qdrant_client.upload_points(
                 collection_name=args.collection_name,
