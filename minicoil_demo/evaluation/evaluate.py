@@ -169,6 +169,12 @@ def main():
 
     print(f'''NDCG@10 by ranx: {evaluate(qrels, run, "ndcg@10")}''')
 
+    print(f'''
+        ranx measured hits: {evaluate(qrels, run, "hits")},
+        precision@10: {evaluate(qrels, run, "precision@10")},
+        recall@10: {evaluate(qrels, run, "recall@10")}
+        ''')
+
 
 
 

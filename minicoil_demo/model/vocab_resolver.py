@@ -197,8 +197,7 @@ class VocabResolver:
                 token_ids[token_id] = vocab_id
 
             if vocab_id == 0:
-                #oov_count[token] += 1
-                oov_count[self.stemmer.stem_word(token)] += 1 #since we need to stem also for bm25, not considering stemmer disabling
+                oov_count[token] += 1
             else:
                 counts[vocab_id] += 1
 
