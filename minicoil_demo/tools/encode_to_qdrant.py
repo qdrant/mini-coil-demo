@@ -73,7 +73,8 @@ def main():
 
     qdrant_cleint = QdrantClient(
         url=QDRANT_URL,
-        api_key=QDRANT_API_KEY
+        api_key=QDRANT_API_KEY,
+        prefer_grpc=True
     )
     
     if qdrant_cleint.collection_exists(args.collection_name):
@@ -98,7 +99,7 @@ def main():
         qdrant_cleint.upload_points(
             collection_name=args.collection_name,
             points=tqdm.tqdm(read_points(mini_coil, args.input_path, parallel=args.parallel)),
-            batch_size=8
+            batch_size=32
         )
 
 
