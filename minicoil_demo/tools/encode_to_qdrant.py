@@ -2,8 +2,7 @@ import argparse
 
 import os
 import json
-from typing import Dict, Iterable, List, Tuple
-import uuid
+from typing import Dict, Iterable, Tuple
 
 from qdrant_client import QdrantClient, models
 
@@ -20,23 +19,23 @@ def read_file(file_path) -> Iterable[Tuple[int, str]]:
         with open(file_path, "r") as f:
             for idx, line in enumerate(f):
                 data = json.loads(line)
-                yield data.get("_id", idx), data["text"]
+                yield int(data.get("_id", idx)), data["text"]
     else:
         with open(file_path, "r") as f:
             for idx, line in enumerate(f):
                 yield idx, line.strip()
 
 
-def embedding_stream(model: MiniCOIL, file_path) -> Iterable[Dict[str, WordEmbedding]]:
+def embedding_stream(model: MiniCOIL, file_path, parallel = None) -> Iterable[Dict[str, WordEmbedding]]:
     stream = map(lambda x: x[1], read_file(file_path))
-    for sentence_embeddings in model.encode_steam(stream, parallel=4):
+    for sentence_embeddings in model.encode_steam(stream, parallel=parallel):
         yield sentence_embeddings
 
 
-def read_points(model: MiniCOIL, file_path: str):
+def read_points(model: MiniCOIL, file_path: str, parallel: int = 4) -> Iterable[models.PointStruct]:
     converted = SparseVectorConverter()
     sentences = read_file(file_path)
-    embeddings = embedding_stream(model, file_path=file_path)
+    embeddings = embedding_stream(model, file_path=file_path, parallel=parallel)
     sparse_vectors = map(lambda x: converted.embedding_to_vector(model, x), embeddings)
     
     for (idx, sentence), sparse_vector in zip(sentences, sparse_vectors):
@@ -56,6 +55,7 @@ def main():
     parser.add_argument("--model-name", type=str)
     parser.add_argument("--input-path", type=str)
     parser.add_argument("--collection-name", type=str, default="minicoil-demo")
+    parser.add_argument("--parallel", type=int, default=4)
     
     args = parser.parse_args()
 
@@ -76,25 +76,28 @@ def main():
         api_key=QDRANT_API_KEY
     )
     
-    if not qdrant_cleint.collection_exists(args.collection_name):
-        qdrant_cleint.create_collection(
-            collection_name=args.collection_name,
-            vectors_config={},
-            sparse_vectors_config={
-                "minicoil": models.SparseVectorParams(
-                    index=models.SparseIndexParams(
-                        on_disk=True
-                    ),
-                    modifier=models.Modifier.IDF,
-                )
-            }
-        )
+    if qdrant_cleint.collection_exists(args.collection_name):
+        print(f"Collection {args.collection_name} already exists. Deleting...")
+        qdrant_cleint.delete_collection(args.collection_name)
+
+    qdrant_cleint.create_collection(
+        collection_name=args.collection_name,
+        vectors_config={},
+        sparse_vectors_config={
+            "minicoil": models.SparseVectorParams(
+                index=models.SparseIndexParams(
+                    on_disk=True
+                ),
+                modifier=models.Modifier.IDF,
+            )
+        }
+    )
         
     import ipdb
     with ipdb.launch_ipdb_on_exception():
         qdrant_cleint.upload_points(
             collection_name=args.collection_name,
-            points=tqdm.tqdm(read_points(mini_coil, args.input_path)),
+            points=tqdm.tqdm(read_points(mini_coil, args.input_path, parallel=args.parallel)),
             batch_size=8
         )
 
