@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import os
 
 from fastapi import FastAPI
@@ -37,7 +38,10 @@ async def embed(query: str):
 
     query_empedding = mini_coil.encode([query])[0]
 
-    result = list(query_empedding.values())
+    result = [
+        asdict(emb)
+        for emb in query_empedding.values()
+    ]
 
     return {
         "result": result

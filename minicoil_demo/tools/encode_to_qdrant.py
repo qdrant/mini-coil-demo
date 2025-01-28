@@ -1,39 +1,47 @@
 import argparse
 
 import os
-from typing import Iterable, List
+import json
+from typing import Dict, Iterable, List, Tuple
 import uuid
 
 from qdrant_client import QdrantClient, models
 
 import tqdm
 from minicoil_demo.config import DATA_DIR, QDRANT_API_KEY, QDRANT_URL
-from minicoil_demo.model.mini_coil import MiniCOIL
-from minicoil_demo.model.sparse_vector import embedding_to_vector
+from minicoil_demo.model.mini_coil import MiniCOIL, WordEmbedding
+from minicoil_demo.model.sparse_vector import SparseVectorConverter
 
 DEFAULT_MODEL_NAME = os.getenv("MODEL_NAME", "minicoil.model")
 
 
-def read_file(file_path):
-    with open(file_path, "r") as f:
-        for line in f:
-            yield line.strip()
+def read_file(file_path) -> Iterable[Tuple[int, str]]:
+    if file_path.endswith(".json") or file_path.endswith(".jsonl"):
+        with open(file_path, "r") as f:
+            for idx, line in enumerate(f):
+                data = json.loads(line)
+                yield data.get("_id", idx), data["text"]
+    else:
+        with open(file_path, "r") as f:
+            for idx, line in enumerate(f):
+                yield idx, line.strip()
 
 
-def embedding_stream(model: MiniCOIL, file_path) -> Iterable[dict]:
-    stream = read_file(file_path)
+def embedding_stream(model: MiniCOIL, file_path) -> Iterable[Dict[str, WordEmbedding]]:
+    stream = map(lambda x: x[1], read_file(file_path))
     for sentence_embeddings in model.encode_steam(stream, parallel=4):
         yield sentence_embeddings
 
 
 def read_points(model: MiniCOIL, file_path: str):
+    converted = SparseVectorConverter()
     sentences = read_file(file_path)
     embeddings = embedding_stream(model, file_path=file_path)
-    sparse_vectors = map(lambda x: embedding_to_vector(model, x), embeddings)
+    sparse_vectors = map(lambda x: converted.embedding_to_vector(model, x), embeddings)
     
-    for sentence, sparse_vector in zip(sentences, sparse_vectors):
+    for (idx, sentence), sparse_vector in zip(sentences, sparse_vectors):
         yield models.PointStruct(
-            id=str(uuid.uuid4()),
+            id=idx,
             vector={
                 "minicoil": sparse_vector,
             },
@@ -73,7 +81,12 @@ def main():
             collection_name=args.collection_name,
             vectors_config={},
             sparse_vectors_config={
-                "minicoil": models.SparseVectorParams()
+                "minicoil": models.SparseVectorParams(
+                    index=models.SparseIndexParams(
+                        on_disk=True
+                    ),
+                    modifier=models.Modifier.IDF,
+                )
             }
         )
         
@@ -81,7 +94,8 @@ def main():
     with ipdb.launch_ipdb_on_exception():
         qdrant_cleint.upload_points(
             collection_name=args.collection_name,
-            points=tqdm.tqdm(read_points(mini_coil, args.input_path))
+            points=tqdm.tqdm(read_points(mini_coil, args.input_path)),
+            batch_size=8
         )
 
 

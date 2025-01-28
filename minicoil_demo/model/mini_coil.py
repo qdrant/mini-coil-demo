@@ -2,15 +2,27 @@
 End-to-end inference of the miniCOIL model.
 This includes sentence transformer, vocabulary resolver, and the coil post-encoder.
 """
+from dataclasses import dataclass
 import itertools
 import json
-from typing import Iterable, List
+from typing import Dict, Iterable, List
 
 import numpy as np
 from fastembed.late_interaction.token_embeddings import TokenEmbeddingsModel
 
 from minicoil_demo.model.encoder import Encoder
 from minicoil_demo.model.vocab_resolver import VocabResolver, VocabTokenizerTokenizer
+
+
+
+@dataclass
+class WordEmbedding:
+    word: str
+    forms: List[str]
+    count: int
+    word_id: int
+    embedding: List[float]
+
 
 
 class MiniCOIL:
@@ -44,7 +56,7 @@ class MiniCOIL:
         assert self.word_encoder.input_dim == self.input_dim
         self.output_dim = self.word_encoder.output_dim
 
-    def encode_steam(self, sentences: Iterable[str], parallel = None) -> Iterable[dict]:
+    def encode_steam(self, sentences: Iterable[str], parallel = None) -> Iterable[Dict[str, WordEmbedding]]:
         
         sentences1, sentences2 = itertools.tee(sentences, 2)
         
@@ -75,27 +87,42 @@ class MiniCOIL:
                 if word_id == 0:
                     continue
 
-                sentence_result[word] = {
-                    "word": word,
-                    "forms": forms[word],
-                    "count": int(counts[word_id]),
-                    "word_id": int(word_id),
-                    "embedding": emb.tolist()
-                }
+                # sentence_result[word] = {
+                #     "word": word,
+                #     "forms": forms[word],
+                #     "count": int(counts[word_id]),
+                #     "word_id": int(word_id),
+                #     "embedding": emb.tolist()
+                # }
+
+                sentence_result[word] = WordEmbedding(
+                    word=word,
+                    forms=forms[word],
+                    count=int(counts[word_id]),
+                    word_id=int(word_id),
+                    embedding=emb.tolist()
+                )
 
             for oov_word, count in oov.items():
-                sentence_result[oov_word] = {
-                    "word": oov_word,
-                    "forms": [oov_word],
-                    "count": int(count),
-                    "word_id": -1,
-                    "embedding": [1]
-                }
+                # {
+                #     "word": oov_word,
+                #     "forms": [oov_word],
+                #     "count": int(count),
+                #     "word_id": -1,
+                #     "embedding": [1]
+                # }
+                sentence_result[oov_word] = WordEmbedding(
+                    word=oov_word,
+                    forms=[oov_word],
+                    count=int(count),
+                    word_id=-1,
+                    embedding=[1]
+                )
             
             yield sentence_result
 
 
-    def encode(self, sentences: list) -> List[dict]:
+    def encode(self, sentences: list) -> List[Dict[str, WordEmbedding]]:
         """
         Encode the given word in the context of the sentences.
         """

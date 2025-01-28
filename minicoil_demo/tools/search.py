@@ -5,7 +5,7 @@ from qdrant_client import QdrantClient, models
 
 from minicoil_demo.config import DATA_DIR, QDRANT_API_KEY, QDRANT_URL
 from minicoil_demo.model.mini_coil import MiniCOIL
-from minicoil_demo.model.sparse_vector import embedding_to_vector
+from minicoil_demo.model.sparse_vector import SparseVectorConverter
 
 
 DEFAULT_MODEL_NAME = os.getenv("MODEL_NAME", "minicoil.model")
@@ -31,9 +31,14 @@ def main():
     )
     
     client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+
+    converter = SparseVectorConverter()
     
+    embeddings = mini_coil.encode([args.query])[0]
+
+    print(f"Embeddings: {embeddings}")
     
-    sparse_vector = embedding_to_vector(mini_coil, mini_coil.encode([args.query])[0])
+    sparse_vector = converter.embedding_to_vector_query(mini_coil, embeddings)
     
     print(f"Query: {args.query}")
     print(f"Sparse Vector: {sparse_vector}")
