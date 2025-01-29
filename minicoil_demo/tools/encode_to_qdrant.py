@@ -14,28 +14,38 @@ from minicoil_demo.model.sparse_vector import SparseVectorConverter
 DEFAULT_MODEL_NAME = os.getenv("MODEL_NAME", "minicoil.model")
 
 
-def read_file(file_path) -> Iterable[Tuple[int, str]]:
+def read_file(file_path, skip_first = 0) -> Iterable[Tuple[int, str]]:
     if file_path.endswith(".json") or file_path.endswith(".jsonl"):
         with open(file_path, "r") as f:
             for idx, line in enumerate(f):
+                if idx < skip_first:
+                    continue
                 data = json.loads(line)
                 yield int(data.get("_id", idx)), data["text"]
     else:
         with open(file_path, "r") as f:
             for idx, line in enumerate(f):
+                if idx < skip_first:
+                    continue
                 yield idx, line.strip()
 
 
-def embedding_stream(model: MiniCOIL, file_path, parallel = None) -> Iterable[Dict[str, WordEmbedding]]:
-    stream = map(lambda x: x[1], read_file(file_path))
+def embedding_stream(model: MiniCOIL, file_path, skip_first = 0, parallel = None) -> Iterable[Dict[str, WordEmbedding]]:
+    stream = map(lambda x: x[1], read_file(file_path, skip_first=skip_first))
     for sentence_embeddings in model.encode_steam(stream, parallel=parallel):
         yield sentence_embeddings
 
 
-def read_points(model: MiniCOIL, file_path: str, parallel: int = 4) -> Iterable[models.PointStruct]:
+def read_points(
+        model: MiniCOIL,
+        file_path: str,
+        parallel: int = 4,
+        skip_first: int = 0,
+) -> Iterable[models.PointStruct]:
     converted = SparseVectorConverter()
-    sentences = read_file(file_path)
-    embeddings = embedding_stream(model, file_path=file_path, parallel=parallel)
+    sentences = read_file(file_path, skip_first=skip_first)
+
+    embeddings = embedding_stream(model, file_path=file_path, skip_first=skip_first, parallel=parallel)
     sparse_vectors = map(lambda x: converted.embedding_to_vector(model, x), embeddings)
     
     for (idx, sentence), sparse_vector in zip(sentences, sparse_vectors):
@@ -56,6 +66,7 @@ def main():
     parser.add_argument("--input-path", type=str)
     parser.add_argument("--collection-name", type=str, default="minicoil-demo")
     parser.add_argument("--parallel", type=int, default=4)
+    parser.add_argument("--skip-first", type=int, default=0)
     
     args = parser.parse_args()
 
@@ -93,12 +104,14 @@ def main():
             )
         }
     )
-        
+
+    points_iterator = read_points(mini_coil, args.input_path, parallel=args.parallel, skip_first=args.skip_first)
+
     import ipdb
     with ipdb.launch_ipdb_on_exception():
         qdrant_cleint.upload_points(
             collection_name=args.collection_name,
-            points=tqdm.tqdm(read_points(mini_coil, args.input_path, parallel=args.parallel)),
+            points=tqdm.tqdm(points_iterator),
             batch_size=32
         )
 
