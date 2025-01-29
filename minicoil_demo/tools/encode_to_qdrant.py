@@ -87,23 +87,24 @@ def main():
         api_key=QDRANT_API_KEY,
         prefer_grpc=True
     )
-    
-    if qdrant_cleint.collection_exists(args.collection_name):
-        print(f"Collection {args.collection_name} already exists. Deleting...")
-        qdrant_cleint.delete_collection(args.collection_name)
 
-    qdrant_cleint.create_collection(
-        collection_name=args.collection_name,
-        vectors_config={},
-        sparse_vectors_config={
-            "minicoil": models.SparseVectorParams(
-                index=models.SparseIndexParams(
-                    on_disk=True
-                ),
-                modifier=models.Modifier.IDF,
-            )
-        }
-    )
+    if args.skip_first == 0:
+        if qdrant_cleint.collection_exists(args.collection_name):
+            print(f"Collection {args.collection_name} already exists. Deleting...")
+            qdrant_cleint.delete_collection(args.collection_name)
+
+        qdrant_cleint.create_collection(
+            collection_name=args.collection_name,
+            vectors_config={},
+            sparse_vectors_config={
+                "minicoil": models.SparseVectorParams(
+                    index=models.SparseIndexParams(
+                        on_disk=True
+                    ),
+                    modifier=models.Modifier.IDF,
+                )
+            }
+        )
 
     points_iterator = read_points(mini_coil, args.input_path, parallel=args.parallel, skip_first=args.skip_first)
 
