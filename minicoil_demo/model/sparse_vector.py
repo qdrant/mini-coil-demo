@@ -184,8 +184,7 @@ class SparseVectorConverter:
             
                 for val_id, value in enumerate(normalized_embedding):
                     indices.append(word_id * embedding_size + val_id) #since miniCOIL IDs start with 1
-                    sign = 1 if value >= 0 else -1
-                    values.append( sign * abs(value) ** 1.5 )
+                    values.append(value * tf)
             else:
                 indices.append(self.unkn_word_token_id(embedding.word, unknown_words_shift))
                 values.append(tf)
