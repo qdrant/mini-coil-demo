@@ -30,6 +30,8 @@ def load_queries(file_path_queries: str, file_path_qrels: str):
         if len(query["doc_ids"]) > 0:
             queries_filtered[query_id] = query
 
+    print(f"Loaded {len(queries_filtered)} queries")
+
     return queries_filtered
 
 
