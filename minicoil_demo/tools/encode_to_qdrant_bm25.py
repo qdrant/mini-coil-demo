@@ -15,6 +15,8 @@ def calculate_avg_length(file_path: str) -> float:
     total_texts_length = 0
     total_texts = 0
 
+    max_docs = 50_000
+
     if file_path.endswith(".json") or file_path.endswith(".jsonl"):
         with open(file_path, "r") as f:
             for line in f:
@@ -22,6 +24,9 @@ def calculate_avg_length(file_path: str) -> float:
                 text = data['title'] + '\n' + data["text"]
                 total_texts_length += len(text.strip().split()) 
                 total_texts += 1
+
+                if total_texts >= max_docs:
+                    break
 
     return float(math.ceil(total_texts_length / total_texts))
 
@@ -80,7 +85,7 @@ def main():
     avg_len = calculate_avg_length(args.input_path)
     print(f"Calculated average length: {avg_len}")
 
-    bm25 = SparseTextEmbedding(model_name="Qdrant/bm25", k=0.9, b=0.4, avg_len=avg_len) # https://github.com/castorini/anserini/blob/4de1d53629507eb9051300a38d46cbc460b4e7d9/src/main/java/io/anserini/collection/BeirFlatCollection.java#L77
+    bm25 = SparseTextEmbedding(model_name="Qdrant/bm25", avg_len=avg_len) # https://github.com/castorini/anserini/blob/4de1d53629507eb9051300a38d46cbc460b4e7d9/src/main/java/io/anserini/collection/BeirFlatCollection.java#L77
 
     qdrant_client = QdrantClient(
         url=QDRANT_URL,

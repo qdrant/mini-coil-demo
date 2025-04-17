@@ -52,7 +52,7 @@ def read_points(
         skip_first: int = 0,
         avg_len: float = 150.0
 ) -> Iterable[models.PointStruct]:
-    converted = SparseVectorConverter(k=0.9, b=0.4, avg_len=avg_len) #https://arxiv.org/pdf/2307.10488
+    converted = SparseVectorConverter(avg_len=avg_len) #https://arxiv.org/pdf/2307.10488
     sentences = read_file(file_path, skip_first=skip_first)
 
     embeddings = embedding_stream(model, file_path=file_path, skip_first=skip_first, parallel=parallel)
