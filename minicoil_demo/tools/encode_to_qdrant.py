@@ -1,7 +1,6 @@
 import argparse
 
 import os
-import math
 import json
 from typing import Dict, Iterable, Tuple
 
@@ -11,22 +10,10 @@ import tqdm
 from minicoil_demo.config import DATA_DIR, QDRANT_API_KEY, QDRANT_URL
 from minicoil_demo.model.mini_coil import MiniCOIL, WordEmbedding
 from minicoil_demo.model.sparse_vector import SparseVectorConverter
+from minicoil_demo.tools.common import calculate_avg_length
 
 DEFAULT_MODEL_NAME = os.getenv("MODEL_NAME", "minicoil.model")
 
-def calculate_avg_length(file_path: str) -> float:
-    total_texts_length = 0
-    total_texts = 0
-
-    if file_path.endswith(".json") or file_path.endswith(".jsonl"):
-        with open(file_path, "r") as f:
-            for line in f:
-                data = json.loads(line)
-                text = data['title'] + '\n' + data["text"]
-                total_texts_length += len(text.strip().split()) 
-                total_texts += 1
-
-    return float(math.ceil(total_texts_length / total_texts))
 
 
 def read_file(file_path, skip_first = 0) -> Iterable[Tuple[int, str]]:
