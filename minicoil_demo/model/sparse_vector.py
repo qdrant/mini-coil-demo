@@ -14,13 +14,16 @@ INT32_MAX = 2**31 - 1
 
 class SparseVectorConverter:
 
-    def __init__(self):
+    def __init__(self, k: float = 1.2, b: float = 0.75, avg_len: float = 150.0):
         punctuation = set(get_all_punctuation())
         special_tokens = set(['[CLS]', '[SEP]', '[PAD]', '[UNK]', '[MASK]'])
         
         self.stemmer = SnowballStemmer("english")
-
         self.unwanted_tokens = punctuation | english_stopwords | special_tokens
+
+        self.k = k
+        self.b = b
+        self.avg_len = avg_len
 
 
     @classmethod
@@ -33,10 +36,9 @@ class SparseVectorConverter:
         return remapped_hash
 
 
-    @classmethod
-    def bm25_tf(cls, num_occurrences: int, sentence_len: int, avg_len: float = 150.0, k: float = 1.2, b: float = 0.75) -> float:
-        res = num_occurrences * (k + 1)
-        res /= num_occurrences + k * (1 - b + b * sentence_len / avg_len)
+    def bm25_tf(self, num_occurrences: int, sentence_len: int) -> float:
+        res = num_occurrences * (self.k + 1)
+        res /= num_occurrences + self.k * (1 - self.b + self.b * sentence_len / self.avg_len)
         return res
 
 
@@ -48,8 +50,23 @@ class SparseVectorConverter:
 
     def clean_words(self, sentence_embedding: Dict[str, WordEmbedding], token_max_length: int = 40) -> Dict[str, WordEmbedding]:
         """
-        Clean miniCOIL sentence embedding from punctuation, stopwords and special tokens.
+        Clean miniCOIL-produced sentence_embedding, as unknown to the miniCOIL's stemmer tokens should fully resemble
+        our BM25 token representation.
+
+        sentence_embedding = {"9°": {"word": "9°", "word_id": -1, "count": 2, "embedding": [1], "forms": ["9°"]},
+                "9": {"word": "9", "word_id": -1, "count": 2, "embedding": [1], "forms": ["9"]},
+                "bat": {"word": "bat", "word_id": 2, "count": 3, "embedding": [0.2, 0.1, -0.2, -0.2], "forms": ["bats", "bat"]},
+                "9°9": {"word": "9°9", "word_id": -1, "count": 1, "embedding": [1], "forms": ["9°9"]},
+                "screech": {"word": "screech", "word_id": -1, "count": 1, "embedding": [1], "forms": ["screech"]},
+                "screeched": {"word": "screeched", "word_id": -1, "count": 1, "embedding": [1], "forms": ["screeched"]}
+                }
+        cleaned_embedding_ground_truth = {
+                "9": {"word": "9", "word_id": -1, "count": 6, "embedding": [1], "forms": ["9°", "9", "9°9", "9°9"]},
+                "bat": {"word": "bat", "word_id": 2, "count": 3, "embedding": [0.2, 0.1, -0.2, -0.2], "forms": ["bats", "bat"]},
+                "screech": {"word": "screech", "word_id": -1, "count": 2, "embedding": [1], "forms": ["screech", "screeched"]}
+                }
         """
+
         new_sentence_embedding = {}
         
         for word, embedding in sentence_embedding.items():
@@ -88,7 +105,7 @@ class SparseVectorConverter:
         return new_sentence_embedding
 
 
-    def embedding_to_vector(self, model: MiniCOIL, sentence_embedding: Dict[str, WordEmbedding], avg_len: float = 150.0, token_max_length: int = 40) -> models.SparseVector:
+    def embedding_to_vector(self, model: MiniCOIL, sentence_embedding: Dict[str, WordEmbedding], token_max_length: int = 40) -> models.SparseVector:
         """
         Convert miniCOIL sentence embedding to Qdrant sparse vector
 
@@ -122,7 +139,7 @@ class SparseVectorConverter:
         vocab_size = model.vocab_resolver.vocab_size()
 
         # ID at which the scope of OOV words starts
-        unknown_words_shift = ((vocab_size * embedding_size) // GAP + 2) * GAP
+        unknown_words_shift = ((vocab_size * embedding_size) // GAP + 2) * GAP #miniCOIL vocab + at least (GAP // embedding_size) + 1 new words gap
 
         sentence_embedding_cleaned = self.clean_words(sentence_embedding)
 
@@ -134,7 +151,7 @@ class SparseVectorConverter:
         for embedding in sentence_embedding_cleaned.values():
             word_id = embedding.word_id
             num_occurences = embedding.count
-            tf = self.bm25_tf(num_occurences, sentence_len, avg_len)
+            tf = self.bm25_tf(num_occurences, sentence_len)
             
             if word_id >= 0: #miniCOIL starts with ID 1
                 embedding = embedding.embedding
@@ -168,11 +185,6 @@ class SparseVectorConverter:
         unknown_words_shift = ((vocab_size * embedding_size) // GAP + 2) * GAP
 
         sentence_embedding_cleaned = self.clean_words(sentence_embedding)
-
-        # Calcualte sentence length after cleaning
-        sentence_len = 0
-        for embedding in sentence_embedding_cleaned.values():
-            sentence_len += embedding.count
 
         for embedding in sentence_embedding_cleaned.values():
             word_id = embedding.word_id
