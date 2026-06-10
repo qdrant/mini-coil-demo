@@ -5,7 +5,7 @@ WORKDIR /frontend
 
 RUN npm install; npm run build
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 ENV PYTHONFAULTHANDLER=1 \
   PYTHONUNBUFFERED=1 \
