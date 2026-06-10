@@ -6,8 +6,8 @@ authors = ["Qdrant team <team@qdrant.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = {extras = ["standard"], version = "^0.115.6"}
-uvicorn = "^0.34.0"
+fastapi = {extras = ["standard"], version = ">=0.115.6,<0.137.0"}
+uvicorn = ">=0.34,<0.50"
 fastembed = { git = "https://github.com/qdrant/fastembed.git", branch = "token-embeddings" }
 py-rust-stemmers = "^0.1.3"
 qdrant-client = "^1.12.0"
